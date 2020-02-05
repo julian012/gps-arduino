@@ -11,7 +11,24 @@ const APP_CODE = "9d_OkPMByNE94ProFpZ4MhOmaXwAnYK7vsWf8EbJOuI";
 
 const parser = port.pipe(new SerialPortParser());
 
-function getAddressInformation(latitude, longitude) {}
+function getAddressInformation(latitude, longitude) {
+    let address = {};
+    return Request({
+        uri: "https://reverse.geocoder.api.here.com/6.2/reversegeocode.json",
+        qs: {
+            "app_id": APP_ID,
+            "app_code": APP_CODE,
+            "mode": "retrieveAddress",
+            "prox": latitude + "," + longitude
+        },
+        json: true
+    }).then(result => {
+        if (result.Response.View.length > 0 && result.Response.View[0].Result.length > 0) {
+            address = result.Response.View[0].Result[0].Location.Address;
+        }
+        return address;
+    });
+}
 
 gps.on("data", async data => {
     if(data.type == "GGA") {
@@ -31,23 +48,3 @@ parser.on("data", data => {
         throw e;
     }
 });
-
-
-function getAddressInformation(latitude, longitude) {
-    let address = {};
-    return Request({
-        uri: "https://reverse.geocoder.api.here.com/6.2/reversegeocode.json",
-        qs: {
-            "app_id": APP_ID,
-            "app_code": APP_CODE,
-            "mode": "retrieveAddress",
-            "prox": latitude + "," + longitude
-        },
-        json: true
-    }).then(result => {
-        if (result.Response.View.length > 0 && result.Response.View[0].Result.length > 0) {
-            address = result.Response.View[0].Result[0].Location.Address;
-        }
-        return address;
-    });
-}
