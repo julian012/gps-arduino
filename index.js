@@ -6,8 +6,8 @@ const Request = require("request-promise");
 const port = new SerialPort("/dev/ttyS0", { baudRate: 9600 });
 const gps = new GPS();
 
-const APP_ID = "iG1iNSN8iaUINjHcw9LT";
-const APP_CODE = "9d_OkPMByNE94ProFpZ4MhOmaXwAnYK7vsWf8EbJOuI";
+const APP_ID = "gZxZwVI2G3XAfiGXdVx1";
+const APP_CODE = "PHj5ZG-3E3Qw84Ykw9mfp3Qekxyzw11St9uZ2SqKfoU";
 
 const parser = port.pipe(new SerialPortParser());
 
