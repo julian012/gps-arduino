@@ -1,27 +1,36 @@
 import { Schema, model } from "mongoose";
+import Double from "@mongoosejs/double";
 
-const facultySchema = new Schema(
+const trafficStatsSchema = new Schema(
   {
-    placa: {
+    license_plate: {
+      type: String,
+      require: true
+    },
+    route: {
       type: String,
       require: true
     },
     date: {
-      type: { type: Date, default: Date.now },
-      require: true
+      type: Date,
+      default: Date.now()
     },
     latitude: {
-      type: Number,
+      type: Double,
       require: true
     },
     longitude: {
+      type: Double,
+      require: true
+    },
+    operation: {
       type: String,
       require: true
     }
   },
   {
-    collection: "ROUTES"
+    collection: "TRAFFIC_STATS"
   }
 );
 
-export default model("Faculty", facultySchema);
+export default model("TrafficStats", trafficStatsSchema);

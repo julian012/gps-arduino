@@ -3,11 +3,13 @@ const SerialPortParser = require("@serialport/parser-readline");
 const GPS = require("gps");
 const Request = require("request-promise");
 import { connect } from "./database";
+import dotenv from "dotenv";
 
 // Proximity
-const { Board, Proximity, Led } = require('johnny-five');
-const board = new Board(); 
+const { Board, Proximity, Led } = require("johnny-five");
+const board = new Board();
 
+dotenv.config();
 connect();
 
 const port = new SerialPort("/dev/ttyS0", { baudRate: 9600 });
@@ -32,44 +34,42 @@ parser.on("data", data => {
   }
 });
 
-board.on('ready', () => {
+board.on("ready", () => {
   const proximity = new Proximity({
-    controller: 'HCSR04',
+    controller: "HCSR04",
     pin: 12
   });
   let passangerIn = false;
   let passangerOut = false;
   let walking = false;
 
-  proximity.on('change', () => {
+  proximity.on("change", () => {
     const { centimeters } = proximity;
     const ledIn = new Led(8);
     const ledOut = new Led(13);
 
-    console.log('cm: ', centimeters);
-    if(!walking){
-      if (centimeters > 2 && centimeters <= 10) passangerOut = true
-      else if (centimeters > 15 && centimeters <= 45) passangerIn = true
+    console.log("cm: ", centimeters);
+    if (!walking) {
+      if (centimeters > 2 && centimeters <= 10) passangerOut = true;
+      else if (centimeters > 15 && centimeters <= 45) passangerIn = true;
       else {
         passangerIn = false;
         passangerOut = false;
       }
 
-      if(passangerIn) {
-        ledIn.on()
-        ledOut.off()
-        walking = true
-        setTimeout(() => walking = false, 5000)
-      }
-      else ledIn.off();
+      if (passangerIn) {
+        ledIn.on();
+        ledOut.off();
+        walking = true;
+        setTimeout(() => (walking = false), 5000);
+      } else ledIn.off();
 
-      if(passangerOut) {
-        ledOut.on()
-        ledIn.off()
-        walking = true
-        setTimeout(() => walking = false, 5000)
-      }
-      else ledOut.off()
+      if (passangerOut) {
+        ledOut.on();
+        ledIn.off();
+        walking = true;
+        setTimeout(() => (walking = false), 5000);
+      } else ledOut.off();
     }
   });
-})
+});
