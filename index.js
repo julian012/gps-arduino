@@ -3,7 +3,7 @@ const SerialPortParser = require("@serialport/parser-readline");
 const GPS = require("gps");
 const Request = require("request-promise");
 import { connect } from "./database";
-import trafficStatsSchema from "../models/Route";
+import trafficStatsSchema from "./models/Route";
 import dotenv from "dotenv";
 dotenv.config();
 connect();
@@ -15,8 +15,8 @@ const board = new Board();
 const port = new SerialPort("/dev/ttyS0", { baudRate: 9600 });
 const gps = new GPS();
 const parser = port.pipe(new SerialPortParser());
-const MIN_CENTIMETERS = 5;
-const MAX_CENTIMETERS = 15;
+const MIN_CENTIMETERS = 20;
+const MAX_CENTIMETERS = 100;
 const SENSOR_ONE = "one";
 const SENSOR_TWO = "two";
 
@@ -29,9 +29,9 @@ board.on("ready", () => {
       if (data.quality != null) {
         lat = data.lat;
         lon = data.lon;
-        console.log(" [" + data.lat + ", " + data.lon + "]");
+        //console.log(" [" + data.lat + ", " + data.lon + "]");
       } else {
-        console.log("no gps fix available");
+        //console.log("no gps fix available");
       }
     }
   });
@@ -44,47 +44,65 @@ board.on("ready", () => {
     }
   });
 
-  const proximityOne = new Proximity({
+  const proximityTwo = new Proximity({
     controller: "HCSR04",
     pin: 12
   });
 
-  const proximityTwo = new Proximity({
+  const proximityOne = new Proximity({
     controller: "HCSR04",
-    pin: 7
+    pin: 13
   });
 
-  let fistSensor = "";
+  let firstSensor = "";
+  let personIn = false;
+  let personOut = false;
+  let ready = false;
 
   proximityTwo.on("change", () => {
-    const { centimeters } = proximityOne;
-    console.log(SENSOR_TWO, " -> ", centimeters);
-    const ledIn = new Led(13);
-    if (centimeters >= MIN_CENTIMETERS && centimeters <= MAX_CENTIMETERS) {
-      if (fistSensor.length == 0) fistSensor = SENSOR_TWO;
-      else if (fistSensor === SENSOR_ONE)
-        addMarker(process.env.OPERATION_IN, ledIn);
-    } else {
-      fistSensor = "";
+    const { centimeters } = proximityTwo;
+    //console.log(SENSOR_TWO, " -> ", centimeters);
+    const ledIn = new Led(8);
+    if(!personOut && !ready){
+      if (centimeters >= MIN_CENTIMETERS && centimeters <= MAX_CENTIMETERS) {
+        if (firstSensor.length == 0) {
+          ledIn.on();
+          firstSensor = SENSOR_TWO;
+          console.log('El usuario va a entrar')
+          personIn= true;
+          ready = true;
+          addMarker(process.env.OPERATION_IN, ledIn);
+        }
+          
+      } else {
+        firstSensor = "";
+      }
     }
   });
 
   proximityOne.on("change", () => {
     const { centimeters } = proximityOne;
-    console.log(SENSOR_ONE, " -> ", centimeters);
-    const ledIn = new Led(8);
-    if (centimeters >= MIN_CENTIMETERS && centimeters <= MAX_CENTIMETERS) {
-      if (fistSensor.length == 0) fistSensor = SENSOR_ONE;
-      else if (fistSensor === SENSOR_TWO)
-        addMarker(process.env.OPERATION_OUT, ledIn);
-    } else {
-      fistSensor = "";
+    //console.log(SENSOR_ONE, " -> ", centimeters, '---');
+    const ledIn = new Led(7);
+    if(!personIn && !ready){
+      if (centimeters >= MIN_CENTIMETERS && centimeters <= MAX_CENTIMETERS) {
+        if (firstSensor.length == 0){
+          ledIn.on();
+          firstSensor = SENSOR_ONE;
+          personOut = true;
+          ready = true;
+          console.log('El usuario va a salir')
+          addMarker(process.env.OPETATION_OUT, ledIn);
+        } 
+      } else {
+        firstSensor = "";
+      }
     }
+    
   });
 
   // El primer valor es el que yo valido con el segundo, suponiendo que el segundo si esta activado define si subio o bajo
   async function addMarker(operation, led) {
-    led.on();
     const values = {
       license_plate: process.env.LICENCE_PLATE,
       route: process.env.ROUTE,
@@ -95,8 +113,13 @@ board.on("ready", () => {
     };
     const newValue = new trafficStatsSchema(values);
     await newValue.save();
-    console.log(operation);
-    setTimeout(led => led.off(), 3000);
-    fistSensor = "";
+    console.log(newValue);
+    setTimeout(() => {
+      led.off()
+      personIn = false
+      personOut = false
+      ready = false
+    }, 3000);
+    firstSensor = "";
   }
 });
